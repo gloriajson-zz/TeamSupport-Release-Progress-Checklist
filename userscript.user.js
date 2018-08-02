@@ -149,21 +149,35 @@ function createTable(version, index){
   for (var key in version) {
     var trb = document.createElement("tr");
     if (version.hasOwnProperty(key) && key!="VersionNumbers") {
-      var date = document.createElement("input");
-      date.id = "form-date-"+key;
-      date.setAttribute("type", "date");
+      var plannedDate = document.createElement("input");
+      plannedDate.id = "form-plan-date-"+key;
+      plannedDate.setAttribute("type", "date");
+      var actualDate = document.createElement("input");
+      actualDate.id = "form-actual-date-"+key;
+      actualDate.setAttribute("type", "date");
+
       var td = document.createElement("td");
       td.style.width = "150px";
       td.setAttribute("class", key);
       var tdplanned = document.createElement("td");
       tdplanned.style.padding = "5px";
+      tdplanned.style.width = "200px";
       var tdstatus = document.createElement("td");
       tdstatus.style.padding = "5px";
+      tdstatus.style.width = "350px";
       var tdactual = document.createElement("td");
       tdactual.style.padding = "5px";
+      tdactual.style.width = "100px";
+
       var tdempty = document.createElement("td");
       tdempty.innerHTML = "&nbsp;";
       tdempty.style.padding = "5px";
+      var tdempty2 = document.createElement("td");
+      tdempty2.innerHTML = "&nbsp;";
+      tdempty2.style.padding = "5px";
+      var tdempty3 = document.createElement("td");
+      tdempty3.innerHTML = "&nbsp;";
+      tdempty3.style.padding = "5px";
 
       var cfdropdown = document.createElement("div");
       cfdropdown.className = "form-group";
@@ -180,17 +194,18 @@ function createTable(version, index){
       cfselect.appendChild(cfoptions);
 
       td.appendChild(cflabel);
-      tdplanned.appendChild(date);
-      tdactual.appendChild(date);
+      tdplanned.appendChild(plannedDate);
+      tdactual.appendChild(actualDate);
       tdstatus.appendChild(cfselect);
       trb.appendChild(td);
       trb.appendChild(tdempty);
       trb.appendChild(tdplanned);
-      trb.appendChild(tdempty);
+      trb.appendChild(tdempty2);
       trb.appendChild(tdstatus);
-      trb.appendChild(tdempty);
+      trb.appendChild(tdempty3);
       trb.appendChild(tdactual);
       table.appendChild(trb);
+      console.log(table);
     }
   }
   return table;
