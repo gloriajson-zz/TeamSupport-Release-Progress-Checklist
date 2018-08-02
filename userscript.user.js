@@ -144,6 +144,41 @@ function createTable(version, index){
   table.setAttribute("class", "table");
   table.setAttribute("style","table-layout:fixed");
 
+  var trh = document.createElement("tr");
+  var thempty = document.createElement("th");
+  thempty.innerHTML = "&nbsp;";
+  thempty.style.padding = "5px";
+  var thempty2 = document.createElement("th");
+  thempty2.innerHTML = "&nbsp;";
+  thempty2.style.padding = "5px";
+  var thempty3 = document.createElement("th");
+  thempty3.innerHTML = "&nbsp;";
+  thempty3.style.padding = "5px";
+
+  var th = document.createElement("th");
+  th.style.width = "150px";
+  var thplanned = document.createElement("th");
+  thplanned.style.padding = "5px";
+  thplanned.style.width = "200px";
+  thplanned.innerHTML = "Planned";
+  var thstatus = document.createElement("th");
+  thstatus.style.padding = "5px";
+  thstatus.style.width = "350px";
+  thstatus.innerHTML = "Status";
+  var thactual = document.createElement("th");
+  thactual.style.padding = "5px";
+  thactual.style.width = "100px";
+  thactual.innerHTML = "Actual";
+
+  trh.appendChild(th);
+  trh.appendChild(thempty);
+  trh.appendChild(thplanned);
+  trh.appendChild(thempty2);
+  trh.appendChild(thstatus);
+  trh.appendChild(thempty3);
+  trh.appendChild(thactual);
+  table.appendChild(trh);
+
   var cfform = document.createElement("form");
   cfform.className = "form-inline";
   for (var key in version) {
