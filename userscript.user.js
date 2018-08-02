@@ -30,6 +30,7 @@
 // @match        https://app.teamsupport.com/vcr/*/Pages/Product*
 // @require      //maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css
 // @require      https://cdn.jsdelivr.net/bootstrap.native/2.0.1/bootstrap-native.js
+// @require      https://cdn.jsdelivr.net/npm/js-datepicker@3.3.2/datepicker.min.js
 
 // ==/UserScript==
 
@@ -43,28 +44,22 @@ var parser = new DOMParser();
 document.addEventListener('DOMContentLoaded', main(), false);
 
 function main(){
-  if(document.getElementById('productTabs')){
-    var toolbar = document.getElementById('productTabs');
+console.log(document.getElementById('productVersionTabs'));
+    if(document.getElementById('productVersionTabs')!=null){
+    var toolbar = document.getElementById('productVersionTabs');
     var button = document.createElement("li");
     var a = document.createElement("a");
-    a.setAttribute("href", "#product-checklist");
+    a.setAttribute("href", "#product-version-checklist");
     a.setAttribute("data-toggle", "tab");
     a.appendChild(document.createTextNode("Release Checklist"));
     button.appendChild(a);
     toolbar.appendChild(button);
+
+    button.addEventListener('click', function(e){
+      e.preventDefault();
+      createTabContent();
+    });
   }
-
-  button.addEventListener('click', function(e){
-    console.log("button clicked");
-    e.preventDefault();
-    createTabContent();
-  });
-
-  // if Save was clicked then send a post request
-  /*document.getElementById('create-btn').onclick = function create() {
-    var customer = document.getElementById('form-select-customer').value;
-    var product = document.getElementById('form-select-product').value;
-  }*/
 }
 
 function createTabContent(){
@@ -72,16 +67,19 @@ function createTabContent(){
   var tabContent = document.getElementsByClassName("tab-content")[0];
   var div = document.createElement("div");
   div.setAttribute("class", "tab-pane fade");
-  div.id = "product-checklist";
+  div.id = "product-version-checklist";
 
   var divRow = document.createElement("div");
   divRow.setAttribute("class", "row");
   var divCol = document.createElement("div");
-  divCol.setAttribute("class", "col-xs-8");
+  divCol.setAttribute("class", "col-xs-12");
 
-  var productName = document.getElementById("productName");
-  var productID = getProductId(productName);
-  var versions = getUnreleasedVersions(productID);
+  var name = document.getElementById("productVersionNumber").innerHTML;
+  var last = name.lastIndexOf("-");
+  var productName = name.substring(0, last);
+  var versionName = name.substring(last+2);
+  var productID = getProductId(productName, versionName);
+  var versions = getVersion(productID, versionName);
   var len = versions.getElementsByTagName("Version").length;
   var version = {
     VersionNumbers: versions.getElementsByTagName("VersionNumber"),
@@ -110,6 +108,7 @@ function createTabContent(){
 }
 
 function createCard(version, index){
+  //create white box card that contains information on 1 version
   var box = document.createElement("div");
   box.setAttribute("class", "box");
   var boxHeader = document.createElement("div");
@@ -122,7 +121,7 @@ function createCard(version, index){
   var boxRow = document.createElement("div");
   boxRow.setAttribute("class", "row");
   var boxCol = document.createElement("div");
-  boxCol.setAttribute("class", "col-md-12");
+  boxCol.setAttribute("class", "col-md-6");
 
   var fields = createTable(version, index);
 
@@ -136,82 +135,69 @@ function createCard(version, index){
 }
 
 function createTable(version, index){
+  //create dropdowns
+  var div = document.createElement("div");
+  div.setAttribute("class", "table-editable");
+
+  var table = document.createElement("table");
+  table.setAttribute("id", "releaseChecklistTable");
+  table.setAttribute("class", "table");
+  table.setAttribute("style","table-layout:fixed");
+
   var cfform = document.createElement("form");
   cfform.className = "form-inline";
-  var cfdropdown = document.createElement("div");
-  cfdropdown.className = "form-group";
-  var cflabel = document.createElement("label");
-  cflabel.setAttribute("for","form-select-codeFreeze");
-  cflabel.innerHTML = "Install Guide:&nbsp;&nbsp;";
-  var cfselect = document.createElement("select");
-  cfselect.style.width = "300px";
-  cfselect.className = "form-control";
-  cfselect.setAttribute("id", "form-select-codeFreeze");
-  var cfoptions = document.createElement("option");
-  cfoptions.innerHTML = version.InstallGuide[index].innerHTML;
+  for (var key in version) {
+    var trb = document.createElement("tr");
+    if (version.hasOwnProperty(key) && key!="VersionNumbers") {
+      var date = document.createElement("input");
+      date.id = "form-date-"+key;
+      date.setAttribute("type", "date");
+      var td = document.createElement("td");
+      td.style.width = "150px";
+      td.setAttribute("class", key);
+      var tdplanned = document.createElement("td");
+      tdplanned.style.padding = "5px";
+      var tdstatus = document.createElement("td");
+      tdstatus.style.padding = "5px";
+      var tdactual = document.createElement("td");
+      tdactual.style.padding = "5px";
+      var tdempty = document.createElement("td");
+      tdempty.innerHTML = "&nbsp;";
+      tdempty.style.padding = "5px";
 
-  cfselect.appendChild(cfoptions);
-  cfdropdown.appendChild(cflabel);
-  cfdropdown.appendChild(cfselect);
-  cfform.appendChild(cfdropdown);
+      var cfdropdown = document.createElement("div");
+      cfdropdown.className = "form-group";
+      var cflabel = document.createElement("label");
+      cflabel.setAttribute("for","form-select-"+key);
+      cflabel.innerHTML = (key.replace(/([A-Z])/g, ' $1').trim())+":&nbsp;&nbsp;";
 
-  /*var userguide = "<div class=\"form-group\">"+
-      "<label for=\"form-select-user\">User Guide&nbsp;&nbsp;</label>"+
-      "<select id=\"form-select-user\" class=\"form-control\" style=\"width:300px\"></select>"+
-      "<option>"+version.UserGuide[index].innerHTML+"</option>"+
-      "</div>";
-  cfform.innerHTML = userguide;
-  if(document.getElementById("form-select-user")){
-     var add = document.getElementById("form-select-user");
-     var ugoptions = document.createElement("option");
-     ugoptions.innerHTML = version.UserGuide[index].innerHTML;
-     add.appendChild(ugoptions);
-   }*/
+      var cfselect = document.createElement("select");
+      cfselect.style.width = "300px";
+      cfselect.className = "form-control";
+      cfselect.setAttribute("id", "form-select-"+key);
+      var cfoptions = document.createElement("option");
+      cfoptions.innerHTML = version[key][index].innerHTML;
+      cfselect.appendChild(cfoptions);
 
-    return cfform;
-
-  /*var trb = document.createElement("tr");
-  trb.setAttribute("style", "border-bottom:1px solid #DCDCDC");
-  var td1 = document.createElement("td");
-  td1.setAttribute("class","codeFreeze");
-  var td2 = document.createElement("td");
-  td2.setAttribute("class","releaseAnnouncement");
-  var td3 = document.createElement("td");
-  td3.setAttribute("class","installGuide");
-  var td4 = document.createElement("td");
-  td4.setAttribute("class","userGuide");
-  var td5 = document.createElement("td");
-  td5.setAttribute("class","trainingGuide");
-  var td6 = document.createElement("td");
-  td6.setAttribute("class","onlineHelp");
-  var td7 = document.createElement("td");
-  td7.setAttribute("class","internalWebcast");
-  var td8 = document.createElement("td");
-  td8.setAttribute("class","customerWebcast");
-  var td9 = document.createElement("td");
-  td9.setAttribute("class","releaseNotes");
-  var td10 = document.createElement("td");
-  td10.setAttribute("class","codeName");*/
+      td.appendChild(cflabel);
+      tdplanned.appendChild(date);
+      tdactual.appendChild(date);
+      tdstatus.appendChild(cfselect);
+      trb.appendChild(td);
+      trb.appendChild(tdempty);
+      trb.appendChild(tdplanned);
+      trb.appendChild(tdempty);
+      trb.appendChild(tdstatus);
+      trb.appendChild(tdempty);
+      trb.appendChild(tdactual);
+      table.appendChild(trb);
+    }
+  }
+  return table;
 }
 
-function getProducts(){
-  //get all the products thorugh the API
-  var queryURL = url + "Products";
-  xhr.open("GET", queryURL, false, orgID, token);
-  xhr.send();
-  var json = JSON.parse(xhr.responseText);
-  console.log(JSON.stringify(json));
-  //var productID = ;
-  //var productName = ;
-
-  //return {
-  //  id: productID,
-  //  name: productName
-  //};
-}
-
-function getProductId(productName){
-  var queryURL = url + "Products?Name=" + productName.innerHTML;
+function getProductId(productName, versionname){
+  var queryURL = url + "Products?Name=" + productName;
   console.log("queryurl: ");
   console.log(queryURL);
   xhr.open("GET", queryURL, false, orgID, token);
@@ -221,12 +207,11 @@ function getProductId(productName){
   return id;
 }
 
-function getUnreleasedVersions(productID){
-  var queryURL = url + "Products/" + productID + "/Versions?IsReleased=False";
+function getVersion(productID, versionName){
+  console.log(productID);
+  var queryURL = url + "Products/" + productID + "/Versions?VersionNumber=" + versionName;
   xhr.open("GET", queryURL, false, orgID, token);
   xhr.send();
   var xmlDoc = parser.parseFromString(xhr.responseText,"text/xml");
-  console.log("unreleased versions xmlDoc:");
-  console.log(xmlDoc);
   return xmlDoc;
 }
