@@ -28,9 +28,6 @@
 // @exclude      https://app.teamsupport.com/frontend*
 // @exclude      https://app.teamsupport.com/Frames*
 // @match        https://app.teamsupport.com/vcr/*/Pages/Product*
-// @require      //maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css
-// @require      https://cdn.jsdelivr.net/bootstrap.native/2.0.1/bootstrap-native.js
-// @require      https://cdn.jsdelivr.net/npm/js-datepicker@3.3.2/datepicker.min.js
 
 // ==/UserScript==
 
@@ -121,7 +118,7 @@ function createCard(version, index){
   var boxRow = document.createElement("div");
   boxRow.setAttribute("class", "row");
   var boxCol = document.createElement("div");
-  boxCol.setAttribute("class", "col-md-6");
+  boxCol.setAttribute("class", "col-md-12");
 
   var fields = createTable(version, index);
 
@@ -137,53 +134,40 @@ function createCard(version, index){
 function createTable(version, index){
   //create dropdowns
   var div = document.createElement("div");
-  div.setAttribute("class", "table-editable");
+  div.setAttribute("class", "table-editable col-md-12");
 
-  var table = document.createElement("table");
+  var table = document.createElement("div");
   table.setAttribute("id", "releaseChecklistTable");
-  table.setAttribute("class", "table");
-  table.setAttribute("style","table-layout:fixed");
+  table.setAttribute("class", "container-fluid");
 
-  var trh = document.createElement("tr");
-  var thempty = document.createElement("th");
-  thempty.innerHTML = "&nbsp;";
-  thempty.style.padding = "5px";
-  var thempty2 = document.createElement("th");
-  thempty2.innerHTML = "&nbsp;";
-  thempty2.style.padding = "5px";
-  var thempty3 = document.createElement("th");
-  thempty3.innerHTML = "&nbsp;";
-  thempty3.style.padding = "5px";
-
-  var th = document.createElement("th");
-  th.style.width = "150px";
-  var thplanned = document.createElement("th");
-  thplanned.style.padding = "5px";
-  thplanned.style.width = "200px";
-  thplanned.innerHTML = "Planned";
-  var thstatus = document.createElement("th");
-  thstatus.style.padding = "5px";
-  thstatus.style.width = "350px";
+  //create table headers
+  var trh = document.createElement("div");
+  trh.setAttribute("class", "row");
+  trh.setAttribute("style", "text-align: center; padding:10px");
+  var th = document.createElement("div");
+  th.className = "col-xs-2 col-md-2";
+  var thplanned = document.createElement("div");
+  thplanned.className = "col-xs-3 col-md-3";
+  thplanned.innerHTML = "Planned&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+  var thactual = document.createElement("div");
+  thactual.className = "col-xs-3 col-md-3";
+  thactual.innerHTML = "Actual&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+  var thstatus = document.createElement("div");
+  thstatus.className = "col-xs-4 col-md-4";
   thstatus.innerHTML = "Status";
-  var thactual = document.createElement("th");
-  thactual.style.padding = "5px";
-  thactual.style.width = "100px";
-  thactual.innerHTML = "Actual";
 
   trh.appendChild(th);
-  trh.appendChild(thempty);
   trh.appendChild(thplanned);
-  trh.appendChild(thempty2);
   trh.appendChild(thstatus);
-  trh.appendChild(thempty3);
   trh.appendChild(thactual);
   table.appendChild(trh);
 
-  var cfform = document.createElement("form");
-  cfform.className = "form-inline";
   for (var key in version) {
-    var trb = document.createElement("tr");
     if (version.hasOwnProperty(key) && key!="VersionNumbers") {
+      var trb = document.createElement("div");
+      trb.setAttribute("class", "row");
+      trb.setAttribute("style", "border-bottom:1px solid #DCDCDC;");
+        
       var plannedDate = document.createElement("input");
       plannedDate.id = "form-plan-date-"+key;
       plannedDate.setAttribute("type", "date");
@@ -191,39 +175,32 @@ function createTable(version, index){
       actualDate.id = "form-actual-date-"+key;
       actualDate.setAttribute("type", "date");
 
-      var td = document.createElement("td");
-      td.style.width = "150px";
-      td.setAttribute("class", key);
-      var tdplanned = document.createElement("td");
+      var td = document.createElement("div");
+      td.className = "col-xs-2 col-md-2";
+      td.style.padding = "5px";
+      var tdplanned = document.createElement("div");
+      tdplanned.className = "col-xs-3 col-md-3";
       tdplanned.style.padding = "5px";
-      tdplanned.style.width = "200px";
-      var tdstatus = document.createElement("td");
-      tdstatus.style.padding = "5px";
-      tdstatus.style.width = "350px";
-      var tdactual = document.createElement("td");
+      tdplanned.setAttribute("style", "text-align:center");
+      var tdactual = document.createElement("div");
+      tdactual.className = "col-xs-3 col-md-3";
       tdactual.style.padding = "5px";
-      tdactual.style.width = "100px";
-
-      var tdempty = document.createElement("td");
-      tdempty.innerHTML = "&nbsp;";
-      tdempty.style.padding = "5px";
-      var tdempty2 = document.createElement("td");
-      tdempty2.innerHTML = "&nbsp;";
-      tdempty2.style.padding = "5px";
-      var tdempty3 = document.createElement("td");
-      tdempty3.innerHTML = "&nbsp;";
-      tdempty3.style.padding = "5px";
+      tdactual.setAttribute("style", "text-align:center");
+      var tdstatus = document.createElement("div");
+      tdstatus.className = "col-xs-4 col-md-4";
+      tdstatus.style.padding = "5px";
+      tdstatus.setAttribute("style", "text-align:center");
 
       var cfdropdown = document.createElement("div");
       cfdropdown.className = "form-group";
       var cflabel = document.createElement("label");
+      cflabel.style.padding = "5px";
       cflabel.setAttribute("for","form-select-"+key);
       cflabel.innerHTML = (key.replace(/([A-Z])/g, ' $1').trim())+":&nbsp;&nbsp;";
 
       var cfselect = document.createElement("select");
-      cfselect.style.width = "300px";
       cfselect.className = "form-control";
-      cfselect.setAttribute("id", "form-select-"+key);
+      cfselect.setAttribute("id", "form-select-" + key);
       var cfoptions = document.createElement("option");
       cfoptions.innerHTML = version[key][index].innerHTML;
       cfselect.appendChild(cfoptions);
@@ -233,11 +210,8 @@ function createTable(version, index){
       tdactual.appendChild(actualDate);
       tdstatus.appendChild(cfselect);
       trb.appendChild(td);
-      trb.appendChild(tdempty);
       trb.appendChild(tdplanned);
-      trb.appendChild(tdempty2);
       trb.appendChild(tdstatus);
-      trb.appendChild(tdempty3);
       trb.appendChild(tdactual);
       table.appendChild(trb);
       console.log(table);
