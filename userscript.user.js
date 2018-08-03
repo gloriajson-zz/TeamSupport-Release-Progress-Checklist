@@ -28,6 +28,7 @@
 // @exclude      https://app.teamsupport.com/frontend*
 // @exclude      https://app.teamsupport.com/Frames*
 // @match        https://app.teamsupport.com/vcr/*/Pages/Product*
+// @require      //maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css
 
 // ==/UserScript==
 
@@ -41,8 +42,24 @@ var parser = new DOMParser();
 document.addEventListener('DOMContentLoaded', main(), false);
 
 function main(){
-console.log(document.getElementById('productVersionTabs'));
-    if(document.getElementById('productVersionTabs')!=null){
+  if(document.getElementsByClassName('btn-group') != null){
+    var group = document.getElementsByClassName('btn-group')[1];
+    var groupbtn = document.createElement("button");
+    groupbtn.className = "btn btn-default product-version-tooltip";
+    groupbtn.setAttribute("type", "button");
+    groupbtn.setAttribute("title-id", "productVersionChecklist");
+    groupbtn.setAttribute("data-original-title", "Open version release checklist");
+    var i = document.createElement("i");
+    i.className = "fa fa-check-square-o";
+    groupbtn.appendChild(i);
+    group.appendChild(groupbtn);
+
+    groupbtn.addEventListener('click', function(e){
+      createAsset();
+    });
+  }
+
+  if(document.getElementById('productVersionTabs')!=null){
     var toolbar = document.getElementById('productVersionTabs');
     var button = document.createElement("li");
     var a = document.createElement("a");
@@ -56,6 +73,24 @@ console.log(document.getElementById('productVersionTabs'));
       e.preventDefault();
       createTabContent();
     });
+  }
+}
+
+function createAsset(){
+  var name = document.getElementById("productVersionNumber").innerHTML;
+  var last = name.lastIndexOf("-");
+  var productName = name.substring(0, last);
+  var versionName = name.substring(last+2);
+  var productID = getProductId(productName, versionName);
+  var asset = getAssetFields(productID, versionName);
+
+  //if release checklist doesn't exist then create a new one
+  if(asset.getElementsByTagName("Asset").length == 0){
+    var queryURL = url + "Assets";
+    var data = "<ProductID>" + productID + "</ProductID><ProductVersionNumber>" + versionName + "</ProductVersionNumber>";
+    var xmlData = parser.parseFromString(data,"text/xml");
+    xhr.open("PUT", queryURL, false, orgID, token);
+    xhr.send(xmlData);
   }
 }
 
@@ -76,26 +111,76 @@ function createTabContent(){
   var productName = name.substring(0, last);
   var versionName = name.substring(last+2);
   var productID = getProductId(productName, versionName);
-  var versions = getVersion(productID, versionName);
-  var len = versions.getElementsByTagName("Version").length;
-  var version = {
-    VersionNumbers: versions.getElementsByTagName("VersionNumber"),
-    CodeFreeze: versions.getElementsByTagName("DevComplete"),
-    ReleaseAnnouncement: versions.getElementsByTagName("ReleaseAnnouncement"),
-    InstallGuide: versions.getElementsByTagName("InstallGuide"),
-    UserGuide: versions.getElementsByTagName("UserGuide"),
-    TrainingGuide: versions.getElementsByTagName("TrainingGuide"),
-    OnlineHelp: versions.getElementsByTagName("OnlineHelp"),
-    ReleaseNotes: versions.getElementsByTagName("ReleaseNotes"),
-    InternalWebcast: versions.getElementsByTagName("InternalWebcast"),
-    CustomerWebcast: versions.getElementsByTagName("CustomerWebcast"),
-    CodeName: versions.getElementsByTagName("CodeName"),
+  var asset = getAssetFields(productID, versionName);
+
+  //var versions = getVersion(productID, versionName);
+  //var len = versions.getElementsByTagName("Version").length;
+  //create objects from xml response
+  var statusFields = {
+    AllocateTickets: asset.getElementsByTagName("AllocateTickets"),
+    CodeFreeze: asset.getElementsByTagName("CodeFreeze"),
+    CreateAndUpdateTrello: asset.getElementsByTagName("Trello"),
+    UpdateTickets: asset.getElementsByTagName("UpdateTickets"),
+    IssueFollowup: asset.getElementsByTagName("IssueFollowup"),
+    ReleaseAnnouncement: asset.getElementsByTagName("ReleaseAnnouncement"),
+    InstallGuide: asset.getElementsByTagName("InstallGuide"),
+    UserGuide: asset.getElementsByTagName("UserGuide"),
+    TrainingGuide: asset.getElementsByTagName("TrainingGuide"),
+    OnlineHelp: asset.getElementsByTagName("OnlineHelp"),
+    NewFeaturesDocument: asset.getElementsByTagName("NewFeatures"),
+    ReleaseNotes: asset.getElementsByTagName("ReleaseNotes"),
+    InternalWebcast: asset.getElementsByTagName("InternalWebcast"),
+    CustomerWebcast: asset.getElementsByTagName("CustomerWebcast"),
+    CheckCustomizationsList: asset.getElementsByTagName("Customizations"),
+    CloseAndUpdateTicketsPostRelease: asset.getElementsByTagName("PostRelease"),
+    SendEmailOnGA: asset.getElementsByTagName("SendEmail"),
+    CreateVersionMetrics: asset.getElementsByTagName("Metrics"),
   }
 
-  for(var i=0; i<len; ++i){
-    var box = createCard(version, i);
-    divCol.appendChild(box);
+  var plannedDates = {
+    AllocateTickets: asset.getElementsByTagName("AllocateTicketsPlanned"),
+    CodeFreeze: asset.getElementsByTagName("CodeFreezePlanned"),
+    CreateAndUpdateTrello: asset.getElementsByTagName("TrelloPlanned"),
+    UpdateTickets: asset.getElementsByTagName("UpdateTicketsPlanned"),
+    IssueFollowup: asset.getElementsByTagName("IssueFollowupPlanned"),
+    ReleaseAnnouncement: asset.getElementsByTagName("ReleaseAnnouncementPlanned"),
+    InstallGuide: asset.getElementsByTagName("InstallGuidePlanned"),
+    UserGuide: asset.getElementsByTagName("UserGuidePlanned"),
+    TrainingGuide: asset.getElementsByTagName("TrainingGuidePlanned"),
+    OnlineHelp: asset.getElementsByTagName("OnlineHelpPlanned"),
+    NewFeaturesDocument: asset.getElementsByTagName("NewFeaturesPlanned"),
+    ReleaseNotes: asset.getElementsByTagName("ReleaseNotesPlanned"),
+    InternalWebcast: asset.getElementsByTagName("InternalWebcastPlanned"),
+    CustomerWebcast: asset.getElementsByTagName("CustomerWebcastPlanned"),
+    CheckCustomizationsList: asset.getElementsByTagName("CustomizationsPlanned"),
+    CloseAndUpdateTicketsPostRelease: asset.getElementsByTagName("PostReleasePlanned"),
+    SendEmailOnGA: asset.getElementsByTagName("SendEmailPlanned"),
+    CreateVersionMetrics: asset.getElementsByTagName("MetricsPlanned"),
   }
+
+  var actualDates = {
+    AllocateTickets: asset.getElementsByTagName("AllocateTicketsActual"),
+    CodeFreeze: asset.getElementsByTagName("CodeFreezeActual"),
+    CreateAndUpdateTrello: asset.getElementsByTagName("TrelloActual"),
+    UpdateTickets: asset.getElementsByTagName("UpdateTicketsActual"),
+    IssueFollowup: asset.getElementsByTagName("IssueFollowupActual"),
+    ReleaseAnnouncement: asset.getElementsByTagName("ReleaseAnnouncementActual"),
+    InstallGuide: asset.getElementsByTagName("InstallGuideActual"),
+    UserGuide: asset.getElementsByTagName("UserGuideActual"),
+    TrainingGuide: asset.getElementsByTagName("TrainingGuideActual"),
+    OnlineHelp: asset.getElementsByTagName("OnlineHelpActual"),
+    NewFeaturesDocument: asset.getElementsByTagName("NewFeaturesActual"),
+    ReleaseNotes: asset.getElementsByTagName("ReleaseNotesActual"),
+    InternalWebcast: asset.getElementsByTagName("InternalWebcastActual"),
+    CustomerWebcast: asset.getElementsByTagName("CustomerWebcastActual"),
+    CheckCustomizationsList: asset.getElementsByTagName("CustomizationsActual"),
+    CloseAndUpdateTicketsPostRelease: asset.getElementsByTagName("PostReleaseActual"),
+    SendEmailOnGA: asset.getElementsByTagName("SendEmailActual"),
+    CreateVersionMetrics: asset.getElementsByTagName("MetricsActual"),
+  }
+
+  var box = createCard(statusFields, plannedDates, actualDates, versionName);
+  divCol.appendChild(box);
 
   divRow.appendChild(divCol);
   div.appendChild(divRow);
@@ -104,14 +189,14 @@ function createTabContent(){
   }
 }
 
-function createCard(version, index){
+function createCard(statusFields, plannedDates, actualDates, versionName){
   //create white box card that contains information on 1 version
   var box = document.createElement("div");
   box.setAttribute("class", "box");
   var boxHeader = document.createElement("div");
   boxHeader.setAttribute("class", "box-header");
   var header = document.createElement("h4");
-  header.innerHTML = version.VersionNumbers[index].innerHTML;
+  header.innerHTML = "&nbsp;&nbsp;&nbsp;&nbsp;" + versionName;
 
   var boxContent = document.createElement("div");
   boxContent.setAttribute("class", "box-content");
@@ -120,7 +205,7 @@ function createCard(version, index){
   var boxCol = document.createElement("div");
   boxCol.setAttribute("class", "col-md-12");
 
-  var fields = createTable(version, index);
+  var fields = createTable(statusFields, plannedDates, actualDates, versionName);
 
   boxHeader.appendChild(header);
   boxCol.appendChild(fields);
@@ -131,7 +216,7 @@ function createCard(version, index){
   return box;
 }
 
-function createTable(version, index){
+function createTable(statusFields, plannedDates, actualDates, versionName){
   //create dropdowns
   var div = document.createElement("div");
   div.setAttribute("class", "table-editable col-md-12");
@@ -148,10 +233,10 @@ function createTable(version, index){
   th.className = "col-xs-2 col-md-2";
   var thplanned = document.createElement("div");
   thplanned.className = "col-xs-3 col-md-3";
-  thplanned.innerHTML = "Planned&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+  thplanned.innerHTML = "Planned Date&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
   var thactual = document.createElement("div");
   thactual.className = "col-xs-3 col-md-3";
-  thactual.innerHTML = "Actual&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+  thactual.innerHTML = "Actual Date&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
   var thstatus = document.createElement("div");
   thstatus.className = "col-xs-4 col-md-4";
   thstatus.innerHTML = "Status";
@@ -162,18 +247,22 @@ function createTable(version, index){
   trh.appendChild(thactual);
   table.appendChild(trh);
 
-  for (var key in version) {
-    if (version.hasOwnProperty(key) && key!="VersionNumbers") {
+  //iterate through custom fields and get their values
+  for (var key in statusFields) {
+    console.log(statusFields[key][0].innerHTML);
+    if (statusFields.hasOwnProperty(key) && key!="VersionNumbers" && statusFields[key][0].innerHTML!="N/a") {
       var trb = document.createElement("div");
       trb.setAttribute("class", "row");
       trb.setAttribute("style", "border-bottom:1px solid #DCDCDC;");
-        
+
       var plannedDate = document.createElement("input");
       plannedDate.id = "form-plan-date-"+key;
       plannedDate.setAttribute("type", "date");
+      plannedDate.setAttribute("value", plannedDates[key][0]);
       var actualDate = document.createElement("input");
       actualDate.id = "form-actual-date-"+key;
       actualDate.setAttribute("type", "date");
+      actualDate.setAttribute("value", actualDates[key][0]);
 
       var td = document.createElement("div");
       td.className = "col-xs-2 col-md-2";
@@ -198,12 +287,28 @@ function createTable(version, index){
       cflabel.setAttribute("for","form-select-"+key);
       cflabel.innerHTML = (key.replace(/([A-Z])/g, ' $1').trim())+":&nbsp;&nbsp;";
 
+      //create status dropdown (ensure options only appear once)
       var cfselect = document.createElement("select");
       cfselect.className = "form-control";
-      cfselect.setAttribute("id", "form-select-" + key);
+      cfselect.setAttribute("id", "form-select-"+key);
       var cfoptions = document.createElement("option");
-      cfoptions.innerHTML = version[key][index].innerHTML;
+      cfoptions.innerHTML = statusFields[key][0].innerHTML;
       cfselect.appendChild(cfoptions);
+      var statuses = {
+        0: "Not Started",
+        1: "In Progress",
+        2: "Complete",
+        3: "N/a",
+      }
+      var len = statuses.length;
+
+      for(var n in statuses){
+        if(statusFields[key][0].innerHTML != statuses[n]){
+           var newoptions = document.createElement("option");
+           newoptions.innerHTML = statuses[n];
+           cfselect.appendChild(newoptions);
+        }
+      }
 
       td.appendChild(cflabel);
       tdplanned.appendChild(plannedDate);
@@ -213,8 +318,8 @@ function createTable(version, index){
       trb.appendChild(tdplanned);
       trb.appendChild(tdstatus);
       trb.appendChild(tdactual);
+      console.log(trb);
       table.appendChild(trb);
-      console.log(table);
     }
   }
   return table;
@@ -234,6 +339,14 @@ function getProductId(productName, versionname){
 function getVersion(productID, versionName){
   console.log(productID);
   var queryURL = url + "Products/" + productID + "/Versions?VersionNumber=" + versionName;
+  xhr.open("GET", queryURL, false, orgID, token);
+  xhr.send();
+  var xmlDoc = parser.parseFromString(xhr.responseText,"text/xml");
+  return xmlDoc;
+}
+
+function getAssetFields(productID, versionNum){
+  var queryURL = url + "Assets?ProductID=" + productID + "&ProductVersionNumber=" + versionNum;
   xhr.open("GET", queryURL, false, orgID, token);
   xhr.send();
   var xmlDoc = parser.parseFromString(xhr.responseText,"text/xml");
