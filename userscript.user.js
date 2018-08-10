@@ -2,7 +2,7 @@
 // @name         TeamSupport Release Progress
 // @namespace    http://tampermonkey.net/
 // @version      0.1
-// @description  creates a checklist of unreleased product versions and their stages
+// @description  creates a checklist of stages in a release with Planned Date, Actual Date and Status options
 // @author       Gloria
 // @grant        none
 // @exclude      https://app.teamsupport.com/vcr/*/Pages/Dashboard*
@@ -125,9 +125,6 @@ function createTabContent(){
     var productID = getProductId(productName, versionName);
     var asset = getAssetFields(productID, versionName);
 
-    console.log(asset);
-    console.log(productID);
-    console.log(versionName);
     var assetID = asset.getElementsByTagName("AssetID")[0].innerHTML;
 
   //create objects from xml response
@@ -205,7 +202,6 @@ function createTabContent(){
 
     divRow.appendChild(divCol);
     div.appendChild(divRow);
-    console.log(div);
     tabContent.appendChild(div);
   }
 }
@@ -260,7 +256,6 @@ function createCard(statusFields, plannedDates, actualDates, versionName, produc
   tb.appendChild(remove);
   tb.appendChild(save);
   boxHeader.appendChild(tb);
-  console.log(boxHeader);
   boxCol.appendChild(fields);
   boxRow.appendChild(boxCol);
   boxContent.appendChild(boxRow);
@@ -304,12 +299,13 @@ function createTable(statusFields, plannedDates, actualDates, versionName){
 
   //iterate through custom fields and get their values
   for (var key in statusFields) {
-    if (statusFields.hasOwnProperty(key) && key!="VersionNumbers" && statusFields[key][0].innerHTML!="N/a") {
+    if (statusFields[key][0].innerHTML!="N/a") {
       var trb = document.createElement("div");
       trb.setAttribute("class", "row");
       trb.setAttribute("style", "border-bottom:1px solid #DCDCDC;");
       var plannedDate;
       var actualDate;
+
       if(statusFields[key][0].innerHTML == "Complete"){
         plannedDate = document.createElement("p");
         plannedDate.setAttribute("class", "form-control-static editable");
@@ -320,10 +316,10 @@ function createTable(statusFields, plannedDates, actualDates, versionName){
         actualDate.setAttribute("style", "display:block");
 
         if(plannedDates[key][0].innerHTML && actualDates[key][0].innerHTML){
-          plannedDate.innerHTML = moment(plannedDates[key][0].innerHTML).format("MM/DD/YYYY");
-          actualDate.innerHTML = moment(actualDates[key][0].innerHTML).format("MM/DD/YYYY");
+          plannedDate.innerHTML = moment(plannedDates[key][0].innerHTML).utc().format("YYYY-MM-DD");
+          actualDate.innerHTML = moment(actualDates[key][0].innerHTML).utc().format("YYYY-MM-DD");
         }else if(plannedDates[key][0].innerHTML){
-          plannedDate.innerHTML = moment(plannedDates[key][0].innerHTML).format("MM/DD/YYYY");
+          plannedDate.innerHTML = moment(plannedDates[key][0].innerHTML).utc().format("YYYY-MM-DD");
           actualDate.innerHTML = "Unassigned";
         }else{
           plannedDate.innerHTML = "Unassigned";
@@ -332,13 +328,15 @@ function createTable(statusFields, plannedDates, actualDates, versionName){
       }else{
         plannedDate = document.createElement("input");
         plannedDate.setAttribute("class", "PlannedDateValues");
+        plannedDate.setAttribute("id", key+"Planned");
         plannedDate.setAttribute("type", "date");
-        plannedDate.setAttribute("value", moment(plannedDates[key][0].innerHTML).utc().format("YYYY-MM-DD"));//).format("YYYY-MM-DD"));
+        plannedDate.setAttribute("value", moment(plannedDates[key][0].innerHTML).utc().format("YYYY-MM-DD"));
 
         actualDate = document.createElement("input");
         actualDate.setAttribute("class", "ActualDateValues");
+        actualDate.setAttribute("id", key+"Actual");
         actualDate.setAttribute("type", "date");
-        actualDate.setAttribute("value", moment(actualDates[key][0].innerHTML).utc().format("YYYY-MM-DD"));//).format("YYYY-MM-DD"));
+        actualDate.setAttribute("value", moment(actualDates[key][0].innerHTML).utc().format("YYYY-MM-DD"));
       }
 
       var checktd = document.createElement("div");
@@ -396,6 +394,7 @@ function createTable(statusFields, plannedDates, actualDates, versionName){
            cfselect.appendChild(newoptions);
         }
       }
+
       checktd.appendChild(check);
       td.appendChild(cflabel);
       tdplanned.appendChild(plannedDate);
@@ -415,8 +414,6 @@ function createTable(statusFields, plannedDates, actualDates, versionName){
 function getProductId(productName, versionname){
   console.log("getting product id...");
   var queryURL = url + "Products?Name=" + productName;
-  console.log("queryurl: ");
-  console.log(queryURL);
   xhr.open("GET", queryURL, false, orgID, token);
   xhr.send();
   var xmlDoc = parser.parseFromString(xhr.responseText,"text/xml");
@@ -435,8 +432,6 @@ function getVersion(productID, versionName){
 
 function getAssetFields(productID, versionNum){
   console.log("getting asset fields...");
-  console.log(productID);
-  console.log(versionNum);
   var queryURL = url + "Assets?Name=Release Checklist&ProductID=" + productID + "&ProductVersionNumber=" + versionNum;
   xhr.open("GET", queryURL, false, orgID, token);
   xhr.send();
@@ -457,7 +452,6 @@ function removeFields(assetID, statusFields){
   }
 
   data += "</Asset>"
-  console.log(data);
   if(data != "<Asset></Asset>"){
     var queryURL = url + "Assets/"+assetID;
     var xmlData = parser.parseFromString(data,"text/xml");
@@ -475,34 +469,33 @@ function updateList(originalStatus, originalPlanned, originalActual, assetID){
   var changedStatus = document.getElementsByClassName("form-control checklist");
   var data = "<Asset>";
   var counter = 0;
-  console.log("changedPlanned value:");
-  console.log(changedPlanned);
 
   for(var key in originalStatus){
     var newStatus = changedStatus["form-select-"+key].value;
-    var newPlanned = changedPlanned[counter].value;
-    var newActual = changedActual[counter].value;
-
-
-    if(newPlanned!="Invalid Date" && newPlanned!=originalPlanned[key][0].innerHTML){
-      console.log(originalPlanned[key][0].innerHTML);
-      console.log(newPlanned);
-      newPlanned = moment(newPlanned).format("MM/DD/YYYY");
-      data += "<"+key+"Planned>"+ newPlanned +"</"+key+"Planned>";
+    if(changedPlanned[counter]){
+      var newPlanned = changedPlanned[counter].value;
+      if(newPlanned!="" && newPlanned!=moment(originalPlanned[key][0].innerHTML).utc().format("YYYY-MM-DD") && changedPlanned[counter].id == key+"Planned"){
+        newPlanned = moment(newPlanned).format("MM/DD/YYYY");
+        data += "<"+key+"Planned>"+ newPlanned +"</"+key+"Planned>";
+      }
     }
 
-    if(newActual!="Invalid Date" && newActual!=originalActual[key][0].innerHTML){
-      newActual = moment(newActual).format("MM/DD/YYYY");
-      data += "<"+key+"Actual>"+ newActual +"</"+key+"Actual>";
+    // if there are values in Actual Date dropdowns
+    if(changedActual[counter]){
+      var newActual = changedActual[counter].value;
+      // if the date is valid and not the same as what it originally was
+      if(newActual!="" && newActual!=moment(originalActual[key][0].innerHTML).utc().format("YYYY-MM-DD") && changedActual[counter].id == key+"Actual"){
+        //add the Actual Date tag to the data that will be sent
+        newActual = moment(newActual).format("MM/DD/YYYY");
+        data += "<"+key+"Actual>"+ newActual +"</"+key+"Actual>";
+      }
     }
 
     if(originalStatus[key][0].innerHTML != newStatus){
       data += "<"+key+">"+ newStatus+"</"+key+">";
     }
-
     counter++;
   }
-
 
   data += "</Asset>";
   console.log(data);
