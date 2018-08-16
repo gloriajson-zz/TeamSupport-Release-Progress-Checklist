@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         TeamSupport Release Progress
+// @name         TeamSupport XML Release Progress
 // @namespace    http://tampermonkey.net/
 // @version      0.1
-// @description  creates a checklist of stages in a release with Planned Date, Actual Date and Status options
+// @description  creates a checklist of stages in a release with Planned and Actual Dates and Status options
 // @author       Gloria
 // @grant        none
 // @exclude      https://app.teamsupport.com/vcr/*/Pages/Dashboard*
@@ -13,10 +13,12 @@
 // @exclude      https://app.teamsupport.com/vcr/*/Pages/Search*
 // @exclude      https://app.teamsupport.com/vcr/*/Pages/WaterCooler*
 // @exclude      https://app.teamsupport.com/vcr/*/Pages/Calendar*
-// @exclude      https://app.teamsupport.com/vcr/*/Pages/Users*
+// @exclude      https://app.teamsupport.com/vcr/*/Pages/User*
 // @exclude      https://app.teamsupport.com/vcr/*/Pages/Groups*
 // @exclude      https://app.teamsupport.com/vcr/*/Pages/Customer*
 // @exclude      https://app.teamsupport.com/vcr/*/Pages/Asset*
+// @exclude      https://app.teamsupport.com/vcr/*/Pages/Products*
+// @exclude      https://app.teamsupport.com/vcr/*/Pages/Inventory*
 // @exclude      https://app.teamsupport.com/vcr/*/Pages/Report*
 // @exclude      https://app.teamsupport.com/vcr/*/TicketPreview*
 // @exclude      https://app.teamsupport.com/vcr/*/Images*
@@ -27,8 +29,7 @@
 // @exclude      https://app.teamsupport.com/Services*
 // @exclude      https://app.teamsupport.com/frontend*
 // @exclude      https://app.teamsupport.com/Frames*
-// @match        https://app.teamsupport.com/vcr/*/Pages/Product*
-// @require      https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.20.1/moment.min.js
+// @match        https://app.teamsupport.com/vcr/*/Pages/ProductVersionDetail*
 
 // ==/UserScript==
 
@@ -125,8 +126,11 @@ function createTabContent(){
     var productID = getProductId(productName, versionName);
     var asset = getAssetFields(productID, versionName);
 
-    var assetID = asset.getElementsByTagName("AssetID")[0].innerHTML;
-
+    try{
+      var assetID = asset.getElementsByTagName("AssetID")[0].innerHTML;
+    }catch(e){
+      alert("Release Checklist doesn't exist or there's an error with the TeamSupport server.");
+    }
   //create objects from xml response
     var statusFields = {
       AllocateTickets: asset.getElementsByTagName("AllocateTickets"),
@@ -227,8 +231,8 @@ function createCard(statusFields, plannedDates, actualDates, versionName, produc
   save.setAttribute("type", "button");
 
   save.addEventListener('click', function(e){
-      e.preventDefault();
-      updateList(statusFields, plannedDates, actualDates, assetID);
+    e.preventDefault();
+    updateList(statusFields, plannedDates, actualDates, assetID);
   });
 
   //create field removal button
@@ -239,8 +243,25 @@ function createCard(statusFields, plannedDates, actualDates, versionName, produc
   remove.setAttribute("type", "button");
 
   remove.addEventListener('click', function(e){
-      e.preventDefault();
-      removeFields(assetID, statusFields);
+    e.preventDefault();
+    removeFields(assetID, statusFields);
+  });
+
+  //create field removal button and modal
+  var edit = document.createElement("button");
+  edit.innerHTML = "Retrieve Fields";
+  edit.className = "btn btn-success";
+  edit.setAttribute("style", "float:right");
+  edit.setAttribute("type", "button");
+  edit.setAttribute("data-toggle", "modal");
+  edit.setAttribute("data-target", "#retrieveFields");
+  createFieldModal();
+
+  edit.addEventListener('click', function(e){
+    e.preventDefault();
+    var sel = document.getElementById('retrieve-fields-body');
+    if(sel) sel.innerHTML = "";
+    retrieveFields(statusFields, assetID);
   });
 
   var boxContent = document.createElement("div");
@@ -253,15 +274,153 @@ function createCard(statusFields, plannedDates, actualDates, versionName, produc
   var fields = createTable(statusFields, plannedDates, actualDates, versionName);
 
   boxHeader.appendChild(header);
+  tb.appendChild(edit);
   tb.appendChild(remove);
   tb.appendChild(save);
   boxHeader.appendChild(tb);
+  console.log(boxHeader);
   boxCol.appendChild(fields);
   boxRow.appendChild(boxCol);
   boxContent.appendChild(boxRow);
   box.appendChild(boxHeader);
   box.appendChild(boxContent);
   return box;
+}
+
+function createFieldModal(){
+    // create Retrieve Fields modal pop up
+    var modal = document.createElement("div");
+    modal.className = "modal fade";
+    modal.setAttribute("id", "retrieveFields");
+    modal.role = "dialog";
+    modal.setAttribute("tabindex", -1);
+    modal.setAttribute("aria-labelledby", "retrieveFieldsModal");
+    modal.setAttribute("aria-hidden", true);
+    document.body.appendChild(modal);
+
+    var modalDialog = document.createElement("div");
+    modalDialog.className = "modal-dialog";
+    modalDialog.setAttribute("role","document");
+    modal.appendChild(modalDialog);
+
+    var modalContent = document.createElement("div");
+    modalContent.className = "modal-content";
+    modalDialog.appendChild(modalContent);
+
+    //create modal header
+    var modalHeader = document.createElement("div");
+    modalHeader.className = "modal-header";
+    modalContent.appendChild(modalHeader);
+
+    // create header title
+    var header = document.createElement("h4");
+    header.className = "modal-title";
+    var hText = document.createTextNode("Retrieve Fields");
+    header.appendChild(hText);
+    modalHeader.appendChild(header);
+
+    // create header close button
+    var hbutton = document.createElement("button");
+    hbutton.setAttribute("type", "button");
+    hbutton.className = "close";
+    hbutton.setAttribute("data-dismiss", "modal");
+    hbutton.setAttribute("aria-label", "Close");
+    var span = document.createElement("span");
+    span.setAttribute("aria-hidden", true);
+    span.innerHTML = "&times;";
+    hbutton.appendChild(span);
+    header.appendChild(hbutton);
+
+    // create modal body
+    var modalBody = document.createElement("div");
+    modalBody.className="modal-body";
+    modalBody.id = "retrieve-fields-body";
+    var modalParagraph = document.createElement("p");
+    modalParagraph.id = "retrieve-fields-paragraph";
+    modalContent.appendChild(modalBody);
+
+    //create modal footer
+    var modalFooter = document.createElement("div");
+    modalFooter.className = "modal-footer";
+    modalContent.appendChild(modalFooter);
+
+    // create save and close buttons in modal footer
+    var sbtn = document.createElement("button");
+    var save = document.createTextNode("Retrieve Fields");
+    sbtn.appendChild(save);
+    sbtn.id = "save-btn-retrieve-fields";
+    sbtn.type = "button";
+    sbtn.setAttribute("data-dismiss", "modal");
+    sbtn.className = "btn btn-primary";
+    var cbtn = document.createElement("button");
+    var close = document.createTextNode("Close");
+    cbtn.appendChild(close);
+    cbtn.type = "button";
+    cbtn.className = "btn btn-secondary";
+    cbtn.setAttribute("data-dismiss", "modal");
+    modalFooter.appendChild(sbtn);
+    modalFooter.appendChild(cbtn);
+}
+
+function retrieveFields(statusFields, assetID){
+    console.log("retrieveFields function...");
+    var body = document.getElementById("retrieve-fields-body");
+    var container = document.createElement("div");
+    container.className = "container col-md-12";
+    var row = document.createElement("div");
+    row.className = "row";
+    var form = document.createElement("form");
+    var switchInd = 0;
+    for(var key in statusFields){
+        if(statusFields[key][0].innerHTML=="N/a"){
+            var label = document.createElement("label");
+            label.setAttribute("class", "checkbox-inline col-md-6");
+            label.innerHTML = (key.replace(/([A-Z])/g, ' $1').trim()) + "&nbsp&nbsp&nbsp&nbsp";
+            var input = document.createElement("input");
+            input.setAttribute("type", "checkbox");
+            input.setAttribute("class", "control-input col-md-6");
+            input.setAttribute("id", key+"checkbox");
+            input.setAttribute("value", key);
+            label.appendChild(input);
+            form.appendChild(label);
+            /*var div = document.createElement("div");
+            div.setAttribute("class", "custom-control custom-checkbox custom-control-inline");
+            var input = document.createElement("input");
+            input.setAttribute("type", "checkbox");
+            input.setAttribute("class", "custom-control-input");
+            input.setAttribute("id", key+"checkbox");
+            var label = document.createElement("label");
+            label.setAttribute("class", "custom-control-label");
+            label.setAttribute("type", "checkbox");
+            label.setAttribute("for", key+"checkbox");
+            label.setAttribute("style", "font-weight:normal;");
+            label.innerHTML = (key.replace(/([A-Z])/g, ' $1').trim());
+            div.appendChild(input);
+            div.appendChild(label);
+            row.appendChild(div);*/
+
+            if(switchInd == 1){
+              console.log(form);
+              /*console.log(row);
+              container.appendChild(row);
+              body.appendChild(container);
+              row = document.createElement("div");
+              row.className = "row";*/
+              row.appendChild(form);
+              container.appendChild(row);
+              body.appendChild(container);
+              form = document.createElement("form");
+              switchInd = 0;
+            }else{
+              switchInd++;
+            }
+        }
+    }
+
+    // if Add Contact Save was clicked then send a post request
+    document.getElementById('save-btn-retrieve-fields').onclick = function saveVersion() {
+        updateFields(assetID);
+    }
 }
 
 function createTable(statusFields, plannedDates, actualDates, versionName){
@@ -282,10 +441,10 @@ function createTable(statusFields, plannedDates, actualDates, versionName){
   th.className = "col-xs-1 col-sm-1 col-md-2";
   var thplanned = document.createElement("div");
   thplanned.className = "col-xs-3 col-sm-3 col-md-3";
-  thplanned.innerHTML = "Planned Date&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+  thplanned.innerHTML = "Planned Date";
   var thactual = document.createElement("div");
   thactual.className = "col-xs-3 col-sm-3 col-md-2";
-  thactual.innerHTML = "Actual Date&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+  thactual.innerHTML = "Actual Date";
   var thstatus = document.createElement("div");
   thstatus.className = "col-xs-4 col-sm-4 col-md-4";
   thstatus.innerHTML = "Status";
@@ -306,6 +465,7 @@ function createTable(statusFields, plannedDates, actualDates, versionName){
       var plannedDate;
       var actualDate;
 
+      //create non editable labels with dates if status is Complete
       if(statusFields[key][0].innerHTML == "Complete"){
         plannedDate = document.createElement("p");
         plannedDate.setAttribute("class", "form-control-static editable");
@@ -315,17 +475,19 @@ function createTable(statusFields, plannedDates, actualDates, versionName){
         actualDate.setAttribute("class", "form-control-static editable");
         actualDate.setAttribute("style", "display:block");
 
-        if(plannedDates[key][0].innerHTML && actualDates[key][0].innerHTML){
+        if(plannedDates[key][0].innerHTML){
           plannedDate.innerHTML = moment(plannedDates[key][0].innerHTML).utc().format("YYYY-MM-DD");
-          actualDate.innerHTML = moment(actualDates[key][0].innerHTML).utc().format("YYYY-MM-DD");
-        }else if(plannedDates[key][0].innerHTML){
-          plannedDate.innerHTML = moment(plannedDates[key][0].innerHTML).utc().format("YYYY-MM-DD");
-          actualDate.innerHTML = "Unassigned";
         }else{
-          plannedDate.innerHTML = "Unassigned";
+          plannedDate.innterHTML = "Unassigned";
+        }
+
+        if(actualDates[key][0].innerHTML){
+          actualDate.innerHTML = moment(actualDates[key][0].innerHTML).utc().format("YYYY-MM-DD");
+        }else{
           actualDate.innerHTML = "Unassigned";
         }
       }else{
+        //create Date fields with calendar dropdowns
         plannedDate = document.createElement("input");
         plannedDate.setAttribute("class", "PlannedDateValues");
         plannedDate.setAttribute("id", key+"Planned");
@@ -339,6 +501,7 @@ function createTable(statusFields, plannedDates, actualDates, versionName){
         actualDate.setAttribute("value", moment(actualDates[key][0].innerHTML).utc().format("YYYY-MM-DD"));
       }
 
+      //format checklist layout
       var checktd = document.createElement("div");
       checktd.className = "col-xs-1 col-sm-1 col-md-1";
       checktd.style.padding = "5px";
@@ -363,7 +526,7 @@ function createTable(statusFields, plannedDates, actualDates, versionName){
       check.classname = "form-check-input";
       check.setAttribute("type", "checkbox");
       check.setAttribute("value", "");
-      check.setAttribute("id", key);
+      check.setAttribute("id", key+"check");
 
       //create status dropdown (ensure options only appear once)
       var cfdropdown = document.createElement("div");
@@ -422,7 +585,7 @@ function getProductId(productName, versionname){
 }
 
 function getVersion(productID, versionName){
-  console.log("getting version...");
+  console.log("getting version data...");
   var queryURL = url + "Products/" + productID + "/Versions?VersionNumber=" + versionName;
   xhr.open("GET", queryURL, false, orgID, token);
   xhr.send();
@@ -444,14 +607,15 @@ function removeFields(assetID, statusFields){
   var data = "<Asset>";
   //change status to N/a so program will skip past them next time
   for(var key in statusFields){
-    var checkbox = document.getElementById(key);
-    if(checkbox.checked){
+    var checkbox = document.getElementById(key+"check");
+    if(checkbox && checkbox.checked){
       var field = key;
       data += ("<"+field+">N/a</"+field+">");
     }
   }
 
   data += "</Asset>"
+
   if(data != "<Asset></Asset>"){
     var queryURL = url + "Assets/"+assetID;
     var xmlData = parser.parseFromString(data,"text/xml");
@@ -463,46 +627,71 @@ function removeFields(assetID, statusFields){
 }
 
 function updateList(originalStatus, originalPlanned, originalActual, assetID){
-  console.log("updating list...");
-  var changedPlanned = document.getElementsByClassName("PlannedDateValues");
-  var changedActual = document.getElementsByClassName("ActualDateValues");
-  var changedStatus = document.getElementsByClassName("form-control checklist");
-  var data = "<Asset>";
-  var counter = 0;
+    console.log("updating list...");
+    var changedPlanned = document.getElementsByClassName("PlannedDateValues");
+    var changedActual = document.getElementsByClassName("ActualDateValues");
+    var changedStatus = document.getElementsByClassName("form-control checklist");
+    var data = "<Asset>";
+    var counter = 0;
 
-  for(var key in originalStatus){
-    var newStatus = changedStatus["form-select-"+key].value;
-    if(changedPlanned[counter]){
-      var newPlanned = changedPlanned[counter].value;
-      if(newPlanned!="" && newPlanned!=moment(originalPlanned[key][0].innerHTML).utc().format("YYYY-MM-DD") && changedPlanned[counter].id == key+"Planned"){
-        newPlanned = moment(newPlanned).format("MM/DD/YYYY");
-        data += "<"+key+"Planned>"+ newPlanned +"</"+key+"Planned>";
+    for(var key in originalStatus){
+        if(changedStatus["form-select-"+key]){
+            var newStatus = changedStatus["form-select-"+key].value;
+            if(changedPlanned[counter]){
+                var newPlanned = changedPlanned[counter].value;
+                if(newPlanned!="" && newPlanned!=moment(originalPlanned[key][0].innerHTML).utc().format("YYYY-MM-DD") && changedPlanned[counter].id == key+"Planned"){
+                    newPlanned = moment(newPlanned).format("MM/DD/YYYY");
+                    data += "<"+key+"Planned>"+ newPlanned +"</"+key+"Planned>";
+                }
+            }
+
+            // if there are values in Actual Date dropdowns
+            if(changedActual[counter]){
+                var newActual = changedActual[counter].value;
+                // if the date is valid and not the same as what it originally was
+                if(newActual!="" && newActual!=moment(originalActual[key][0].innerHTML).utc().format("YYYY-MM-DD") && changedActual[counter].id == key+"Actual"){
+                    //add the Actual Date tag to the data that will be sent
+                    newActual = moment(newActual).format("MM/DD/YYYY");
+                    data += "<"+key+"Actual>"+ newActual +"</"+key+"Actual>";
+                }
+            }
+
+            if(originalStatus[key][0].innerHTML != newStatus){
+                data += "<"+key+">"+ newStatus+"</"+key+">";
+            }
+            counter++;
+        }
+    }
+
+    data += "</Asset>";
+
+    var queryURL = url + "Assets/"+assetID;
+    var xmlData = parser.parseFromString(data,"text/xml");
+    xhr.open("PUT", queryURL, false, orgID, token);
+    xhr.send(xmlData);
+
+    location.reload();
+}
+
+function updateFields(assetID){
+    console.log("update fields from retrieval...");
+    var fields = document.getElementsByClassName("custom-control-label");
+    var len = fields.length;
+    var data = '<Asset>';
+    for(var i=0; i<len; ++i){
+      if(fields[i].checked){
+          var id = fields[i].id;
+          var key = id.substring(0, id.indexOf("checkbox"));
+          data += "<"+key+">Not Started</"+key+">";
+
       }
     }
+    data += '</Asset>';
 
-    // if there are values in Actual Date dropdowns
-    if(changedActual[counter]){
-      var newActual = changedActual[counter].value;
-      // if the date is valid and not the same as what it originally was
-      if(newActual!="" && newActual!=moment(originalActual[key][0].innerHTML).utc().format("YYYY-MM-DD") && changedActual[counter].id == key+"Actual"){
-        //add the Actual Date tag to the data that will be sent
-        newActual = moment(newActual).format("MM/DD/YYYY");
-        data += "<"+key+"Actual>"+ newActual +"</"+key+"Actual>";
-      }
-    }
+    var queryURL = url + "Assets/"+assetID;
+    var xmlData = parser.parseFromString(data,"text/xml");
+    xhr.open("PUT", queryURL, false, orgID, token);
+    xhr.send(xmlData);
 
-    if(originalStatus[key][0].innerHTML != newStatus){
-      data += "<"+key+">"+ newStatus+"</"+key+">";
-    }
-    counter++;
-  }
-
-  data += "</Asset>";
-  console.log(data);
-  var queryURL = url + "Assets/"+assetID;
-  var xmlData = parser.parseFromString(data,"text/xml");
-  xhr.open("PUT", queryURL, false, orgID, token);
-  xhr.send(xmlData);
-
-  location.reload();
+    location.reload();
 }
