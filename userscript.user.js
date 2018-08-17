@@ -687,7 +687,7 @@ function updateFields(assetID){
       }
     }
     data += '</Asset>';
-
+    console.log(data);
     var queryURL = url + "Assets/"+assetID;
     var xmlData = parser.parseFromString(data,"text/xml");
     xhr.open("PUT", queryURL, false, orgID, token);
