@@ -365,51 +365,33 @@ function createFieldModal(){
 function retrieveFields(statusFields, assetID){
     console.log("retrieveFields function...");
     var body = document.getElementById("retrieve-fields-body");
-    var container = document.createElement("div");
-    container.className = "container col-md-12";
+    var group = document.createElement("div");
+    group.className = "form-group";
+    group.id = "retrieve-fields-field-list";
     var row = document.createElement("div");
     row.className = "row";
     var form = document.createElement("form");
     var switchInd = 0;
     for(var key in statusFields){
         if(statusFields[key][0].innerHTML=="N/a"){
-            var label = document.createElement("label");
-            label.setAttribute("class", "checkbox-inline col-md-6");
-            label.innerHTML = (key.replace(/([A-Z])/g, ' $1').trim()) + "&nbsp&nbsp&nbsp&nbsp";
             var input = document.createElement("input");
             input.setAttribute("type", "checkbox");
-            input.setAttribute("class", "control-input col-md-6");
-            input.setAttribute("id", key+"checkbox");
-            input.setAttribute("value", key);
-            label.appendChild(input);
-            form.appendChild(label);
-            /*var div = document.createElement("div");
-            div.setAttribute("class", "custom-control custom-checkbox custom-control-inline");
-            var input = document.createElement("input");
-            input.setAttribute("type", "checkbox");
-            input.setAttribute("class", "custom-control-input");
+            input.setAttribute("class", "retrieve-fields-field col-md-1 col-lg-1 col-sm-1 col-xs-1");
             input.setAttribute("id", key+"checkbox");
             var label = document.createElement("label");
-            label.setAttribute("class", "custom-control-label");
+            label.setAttribute("class", "col-md-5 col-lg-5 col-sm-5 col-xs-5");
             label.setAttribute("type", "checkbox");
             label.setAttribute("for", key+"checkbox");
             label.setAttribute("style", "font-weight:normal;");
             label.innerHTML = (key.replace(/([A-Z])/g, ' $1').trim());
-            div.appendChild(input);
-            div.appendChild(label);
-            row.appendChild(div);*/
+            row.appendChild(input);
+            row.appendChild(label);
+            group.appendChild(row);
+            body.appendChild(group);
 
             if(switchInd == 1){
-              console.log(form);
-              /*console.log(row);
-              container.appendChild(row);
-              body.appendChild(container);
               row = document.createElement("div");
-              row.className = "row";*/
-              row.appendChild(form);
-              container.appendChild(row);
-              body.appendChild(container);
-              form = document.createElement("form");
+              row.className = "row";
               switchInd = 0;
             }else{
               switchInd++;
@@ -675,7 +657,7 @@ function updateList(originalStatus, originalPlanned, originalActual, assetID){
 
 function updateFields(assetID){
     console.log("update fields from retrieval...");
-    var fields = document.getElementsByClassName("custom-control-label");
+    var fields = document.getElementsByClassName("retrieve-fields-field");
     var len = fields.length;
     var data = '<Asset>';
     for(var i=0; i<len; ++i){
@@ -687,7 +669,6 @@ function updateFields(assetID){
       }
     }
     data += '</Asset>';
-    console.log(data);
     var queryURL = url + "Assets/"+assetID;
     var xmlData = parser.parseFromString(data,"text/xml");
     xhr.open("PUT", queryURL, false, orgID, token);
